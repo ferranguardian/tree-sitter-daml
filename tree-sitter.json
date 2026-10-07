@@ -1,0 +1,18 @@
+{
+  "grammars": [
+    {
+      "name": "daml",
+      "camelcase": "Daml",
+      "scope": "source.daml",
+      "path": ".",
+      "file-types": ["daml"]
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "DAML grammar for tree-sitter (extends tree-sitter-haskell 0.23.1)",
+    "links": { "repository": "https://github.com/tree-sitter/tree-sitter-haskell" }
+  },
+  "bindings": { "c": false, "go": false, "node": false, "python": false, "rust": false, "swift": false }
+}

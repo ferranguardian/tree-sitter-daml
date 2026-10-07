@@ -1,0 +1,850 @@
+================================================================================
+template with fields, clauses and choices
+================================================================================
+
+module M where
+
+template Asset
+  with
+    issuer : Party
+    owner : Party
+    amount : Decimal
+  where
+    signatory issuer, owner
+    observer obs
+    ensure amount > 0.0
+    key (issuer, owner) : (Party, Party)
+    maintainer key._1
+
+    choice Transfer : ContractId Asset
+      with
+        newOwner : Party
+      controller owner
+      do
+        create this with owner = newOwner
+
+    nonconsuming choice Peek : Decimal
+      controller owner, issuer
+      do pure amount
+
+--------------------------------------------------------------------------------
+
+(haskell
+  (header
+    (module
+      (module_id)))
+  (declarations
+    (template
+      (name)
+      (fields
+        (field
+          (field_name
+            (variable))
+          (name))
+        (field
+          (field_name
+            (variable))
+          (name))
+        (field
+          (field_name
+            (variable))
+          (name)))
+      (template_body
+        (signatory
+          (variable)
+          (variable))
+        (observer
+          (variable))
+        (ensure
+          (infix
+            (variable)
+            (operator)
+            (literal
+              (float))))
+        (contract_key
+          (tuple
+            (variable)
+            (variable))
+          (tuple
+            (name)
+            (name)))
+        (maintainer
+          (projection
+            (variable)
+            (field_name
+              (variable))))
+        (template_choice
+          (constructor)
+          (apply
+            (name)
+            (name))
+          (fields
+            (field
+              (field_name
+                (variable))
+              (name)))
+          (controller
+            (variable))
+          (do
+            (exp
+              (apply
+                (variable)
+                (record
+                  (variable)
+                  (field_update
+                    (field_name
+                      (variable))
+                    (variable)))))))
+        (template_choice
+          (choice_consumption)
+          (constructor)
+          (name)
+          (controller
+            (variable)
+            (variable))
+          (do
+            (exp
+              (apply
+                (variable)
+                (variable)))))))))
+
+================================================================================
+choice clause ending in an operand before do
+================================================================================
+
+module M where
+
+template T
+  with
+    p : Party
+  where
+    signatory p
+    choice C : ()
+      controller a.owner :: lock.holders
+      do pure ()
+
+--------------------------------------------------------------------------------
+
+(haskell
+  (header
+    (module
+      (module_id)))
+  (declarations
+    (template
+      (name)
+      (fields
+        (field
+          (field_name
+            (variable))
+          (name)))
+      (template_body
+        (signatory
+          (variable))
+        (template_choice
+          (constructor)
+          (unit)
+          (controller
+            (infix
+              (projection
+                (variable)
+                (field_name
+                  (variable)))
+              (constructor_operator)
+              (projection
+                (variable)
+                (field_name
+                  (variable)))))
+          (do
+            (exp
+              (apply
+                (variable)
+                (unit)))))))))
+
+================================================================================
+choice with where clauses and observers
+================================================================================
+
+module M where
+
+template T
+  with
+    p : Party
+  where
+    signatory p
+    choice C : ()
+      with
+        who : Party
+      where
+        controller who
+        observer p
+      do pure ()
+
+--------------------------------------------------------------------------------
+
+(haskell
+  (header
+    (module
+      (module_id)))
+  (declarations
+    (template
+      (name)
+      (fields
+        (field
+          (field_name
+            (variable))
+          (name)))
+      (template_body
+        (signatory
+          (variable))
+        (template_choice
+          (constructor)
+          (unit)
+          (fields
+            (field
+              (field_name
+                (variable))
+              (name)))
+          (controller
+            (variable))
+          (observer
+            (variable))
+          (do
+            (exp
+              (apply
+                (variable)
+                (unit)))))))))
+
+================================================================================
+empty with before controller
+================================================================================
+
+module M where
+
+template T
+  with
+    p : Party
+  where
+    signatory p
+    preconsuming choice C
+      : ()
+      with -- params
+      controller p
+      do return ()
+
+--------------------------------------------------------------------------------
+
+(haskell
+  (header
+    (module
+      (module_id)))
+  (declarations
+    (template
+      (name)
+      (fields
+        (field
+          (field_name
+            (variable))
+          (name)))
+      (template_body
+        (signatory
+          (variable))
+        (template_choice
+          (choice_consumption)
+          (constructor)
+          (unit)
+          (fields)
+          (comment)
+          (controller
+            (variable))
+          (do
+            (exp
+              (apply
+                (variable)
+                (unit)))))))))
+
+================================================================================
+interface with methods, choices and instances
+================================================================================
+
+module M where
+
+interface Account requires Disclosure.I where
+  viewtype V
+  getKey : AccountKey
+  credit : Credit -> Update (ContractId Holding.I)
+  nonconsuming choice GetView : View
+    with
+      viewer : Party
+    controller viewer
+    do pure $ view this
+
+template Acc
+  with
+    p : Party
+  where
+    signatory p
+    interface instance Account.I for Acc where
+      view = Account.View with custodian; id; owner
+      getKey = accountKey this
+
+--------------------------------------------------------------------------------
+
+(haskell
+  (header
+    (module
+      (module_id)))
+  (declarations
+    (interface
+      (name)
+      (qualified
+        (module
+          (module_id))
+        (name))
+      (interface_body
+        (viewtype
+          (name))
+        (signature
+          (variable)
+          (name))
+        (signature
+          (variable)
+          (function
+            (name)
+            (apply
+              (name)
+              (parens
+                (apply
+                  (name)
+                  (qualified
+                    (module
+                      (module_id))
+                    (name)))))))
+        (template_choice
+          (choice_consumption)
+          (constructor)
+          (name)
+          (fields
+            (field
+              (field_name
+                (variable))
+              (name)))
+          (controller
+            (variable))
+          (do
+            (exp
+              (infix
+                (variable)
+                (operator)
+                (apply
+                  (variable)
+                  (variable))))))))
+    (template
+      (name)
+      (fields
+        (field
+          (field_name
+            (variable))
+          (name)))
+      (template_body
+        (signatory
+          (variable))
+        (interface_instance
+          (qualified
+            (module
+              (module_id))
+            (name))
+          (name)
+          (local_binds
+            (bind
+              (variable)
+              (match
+                (record
+                  (qualified
+                    (module
+                      (module_id))
+                    (constructor))
+                  (field_update
+                    (field_name
+                      (variable)))
+                  (field_update
+                    (field_name
+                      (variable)))
+                  (field_update
+                    (field_name
+                      (variable))))))
+            (bind
+              (variable)
+              (match
+                (apply
+                  (variable)
+                  (variable))))))))))
+
+================================================================================
+exception
+================================================================================
+
+module M where
+
+exception InsufficientFunds
+  with
+    needed : Decimal
+  where
+    message "needed " <> show needed
+
+--------------------------------------------------------------------------------
+
+(haskell
+  (header
+    (module
+      (module_id)))
+  (declarations
+    (exception
+      (name)
+      (fields
+        (field
+          (field_name
+            (variable))
+          (name)))
+      (exception_body
+        (message
+          (infix
+            (literal
+              (string))
+            (operator)
+            (apply
+              (variable)
+              (variable))))))))
+
+================================================================================
+data declarations with with
+================================================================================
+
+module M where
+
+data V = V with a : Int; b : Text
+  deriving (Eq, Show)
+
+data C = And with a1 : Claim, a2 : Claim
+       | Or with key : Int
+
+data E = E with
+  deriving (Eq)
+
+data B = B with
+  { dummy : ()
+  , srcLoc : SrcLoc
+  }
+
+--------------------------------------------------------------------------------
+
+(haskell
+  (header
+    (module
+      (module_id)))
+  (declarations
+    (data_type
+      (name)
+      (data_constructors
+        (data_constructor
+          (record
+            (constructor)
+            (fields
+              (field
+                (field_name
+                  (variable))
+                (name))
+              (field
+                (field_name
+                  (variable))
+                (name))))))
+      (deriving
+        (tuple
+          (name)
+          (name))))
+    (data_type
+      (name)
+      (data_constructors
+        (data_constructor
+          (record
+            (constructor)
+            (fields
+              (field
+                (field_name
+                  (variable))
+                (name))
+              (field
+                (field_name
+                  (variable))
+                (name)))))
+        (data_constructor
+          (record
+            (constructor)
+            (fields
+              (field
+                (field_name
+                  (variable))
+                (name)))))))
+    (data_type
+      (name)
+      (data_constructors
+        (data_constructor
+          (record
+            (constructor)
+            (fields))))
+      (deriving
+        (parens
+          (name))))
+    (data_type
+      (name)
+      (data_constructors
+        (data_constructor
+          (record
+            (constructor)
+            (fields
+              (field
+                (field_name
+                  (variable))
+                (unit))
+              (field
+                (field_name
+                  (variable))
+                (name)))))))))
+
+================================================================================
+record expressions
+================================================================================
+
+module M where
+
+f = (A with x = 1, y = 2)
+g = [A with x = 1; y = 2, A with x = 3]
+h = (app, Users with .., cid)
+i = pure T with
+  a = 1
+  b = do pure ()
+j = Foo{a; b; c}
+k = key InstructionKey with instructor; batchId; id : InstructionKey
+
+--------------------------------------------------------------------------------
+
+(haskell
+  (header
+    (module
+      (module_id)))
+  (declarations
+    (bind
+      (variable)
+      (match
+        (parens
+          (record
+            (constructor)
+            (field_update
+              (field_name
+                (variable))
+              (literal
+                (integer)))
+            (field_update
+              (field_name
+                (variable))
+              (literal
+                (integer)))))))
+    (bind
+      (variable)
+      (match
+        (list
+          (record
+            (constructor)
+            (field_update
+              (field_name
+                (variable))
+              (literal
+                (integer)))
+            (field_update
+              (field_name
+                (variable))
+              (literal
+                (integer))))
+          (record
+            (constructor)
+            (field_update
+              (field_name
+                (variable))
+              (literal
+                (integer)))))))
+    (bind
+      (variable)
+      (match
+        (tuple
+          (variable)
+          (record
+            (constructor)
+            (field_update
+              (wildcard)))
+          (variable))))
+    (bind
+      (variable)
+      (match
+        (apply
+          (variable)
+          (record
+            (constructor)
+            (field_update
+              (field_name
+                (variable))
+              (literal
+                (integer)))
+            (field_update
+              (field_name
+                (variable))
+              (do
+                (exp
+                  (apply
+                    (variable)
+                    (unit)))))))))
+    (bind
+      (variable)
+      (match
+        (record
+          (constructor)
+          (field_update
+            (field_name
+              (variable)))
+          (field_update
+            (field_name
+              (variable)))
+          (field_update
+            (field_name
+              (variable))))))
+    (bind
+      (variable)
+      (match
+        (signature
+          (apply
+            (variable)
+            (record
+              (constructor)
+              (field_update
+                (field_name
+                  (variable)))
+              (field_update
+                (field_name
+                  (variable)))
+              (field_update
+                (field_name
+                  (variable)))))
+          (name))))))
+
+================================================================================
+record patterns
+================================================================================
+
+module M where
+
+f (TaggedClaim with claim; tag) = claim
+contractGroupId AmuletRules with .. = ForDso with ..
+g x = case x of
+  R with a -> a
+  _ -> 0
+h (A{x; y} :: rest) = x
+
+--------------------------------------------------------------------------------
+
+(haskell
+  (header
+    (module
+      (module_id)))
+  (declarations
+    (function
+      (variable)
+      (patterns
+        (parens
+          (record
+            (constructor)
+            (field_pattern
+              (field_name
+                (variable)))
+            (field_pattern
+              (field_name
+                (variable))))))
+      (match
+        (variable)))
+    (function
+      (variable)
+      (patterns
+        (record
+          (constructor)
+          (field_pattern
+            (wildcard))))
+      (match
+        (record
+          (constructor)
+          (field_update
+            (wildcard)))))
+    (function
+      (variable)
+      (patterns
+        (variable))
+      (match
+        (case
+          (variable)
+          (alternatives
+            (alternative
+              (record
+                (constructor)
+                (field_pattern
+                  (field_name
+                    (variable))))
+              (match
+                (variable)))
+            (alternative
+              (wildcard)
+              (match
+                (literal
+                  (integer))))))))
+    (function
+      (variable)
+      (patterns
+        (parens
+          (infix
+            (record
+              (constructor)
+              (field_pattern
+                (field_name
+                  (variable)))
+              (field_pattern
+                (field_name
+                  (variable))))
+            (constructor_operator)
+            (variable))))
+      (match
+        (variable)))))
+
+================================================================================
+colons are swapped
+================================================================================
+
+module M where
+
+f : Int -> [Int]
+f x = x :: []
+
+--------------------------------------------------------------------------------
+
+(haskell
+  (header
+    (module
+      (module_id)))
+  (declarations
+    (signature
+      (variable)
+      (function
+        (name)
+        (list
+          (name))))
+    (function
+      (variable)
+      (patterns
+        (variable))
+      (match
+        (infix
+          (variable)
+          (constructor_operator)
+          (list))))))
+
+================================================================================
+try catch
+================================================================================
+
+module M where
+
+t = do
+  try do
+    pure ()
+  catch
+    (e : AnyException) -> pure ()
+  try failWith x
+  catch (_ : AnyException) -> pure ()
+
+--------------------------------------------------------------------------------
+
+(haskell
+  (header
+    (module
+      (module_id)))
+  (declarations
+    (bind
+      (variable)
+      (match
+        (do
+          (exp
+            (try
+              (do
+                (exp
+                  (apply
+                    (variable)
+                    (unit))))
+              (alternatives
+                (alternative
+                  (parens
+                    (signature
+                      (variable)
+                      (name)))
+                  (match
+                    (apply
+                      (variable)
+                      (unit)))))))
+          (exp
+            (try
+              (apply
+                (variable)
+                (variable))
+              (alternatives
+                (alternative
+                  (parens
+                    (signature
+                      (wildcard)
+                      (name)))
+                  (match
+                    (apply
+                      (variable)
+                      (unit))))))))))))
+
+================================================================================
+keywords as functions
+================================================================================
+
+module M where
+
+f t = signatory t <> observer t <> [key t] <> message e
+
+--------------------------------------------------------------------------------
+
+(haskell
+  (header
+    (module
+      (module_id)))
+  (declarations
+    (function
+      (variable)
+      (patterns
+        (variable))
+      (match
+        (infix
+          (apply
+            (variable)
+            (variable))
+          (operator)
+          (infix
+            (apply
+              (variable)
+              (variable))
+            (operator)
+            (infix
+              (list
+                (apply
+                  (variable)
+                  (variable)))
+              (operator)
+              (apply
+                (variable)
+                (variable)))))))))
